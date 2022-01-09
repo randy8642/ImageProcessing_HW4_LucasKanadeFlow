@@ -140,7 +140,7 @@ class MainWindow(QWidget):
         img_next = cv2.imread(self.fileName_next)
         height, width, channel = img_next.shape
 
-        window_size = [25, 25]
+        window_size = [15, 15]
         trackingPoint = self.displayLabel.selectedPoint        
         trackingPoint = [[y / 400. * height, x / 600. * width] for x, y in trackingPoint]
 
@@ -161,7 +161,7 @@ class MainWindow(QWidget):
         output_frame = cv2.resize(output_frame, (600, 400), interpolation=cv2.INTER_AREA)
         qImg = QImage(output_frame, 600, 400, bytesPerLine, QImage.Format_RGB888)
         self.disployLabel_processed.setPixmap(QPixmap.fromImage(qImg))
-
+        self.btn_saveImage.setEnabled(True)
 
 if __name__ == '__main__':
     app = QApplication([])
