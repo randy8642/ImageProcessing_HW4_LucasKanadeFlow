@@ -29,18 +29,20 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
     img_prev_gray = cv2.cvtColor(img_prev, cv2.COLOR_BGR2GRAY).astype(np.float32)
     img_next_gray = cv2.cvtColor(img_next, cv2.COLOR_BGR2GRAY).astype(np.float32)
 
+    # 計算x方向梯度/y方向梯度/時間變化的差異
     Iy = (img_prev_gray[2:, 1:-1] - img_prev_gray[1:-1, 1:-1]) / 2
     Ix = (img_prev_gray[1:-1, 2:] - img_prev_gray[1:-1, 1:-1]) / 2
     It = img_next_gray[1:-1, 1:-1] - img_prev_gray[1:-1, 1:-1]
     
-
     iter_points = []
+    # 每個點分開執行追蹤
     for (Py, Px) in trackingPoint:
         iter_point = [[Py, Px]]
         n = 0
         pre_v = np.inf
         while True:  
-            n += 1  
+            n += 1
+            # 計算要裁切的上下界
             crop_x_upper = int(Px + window_size[1] // 2)
             crop_x_lower = int(Px - window_size[1] // 2 - 1)
             crop_y_upper = int(Py + window_size[1] // 2)
@@ -49,27 +51,33 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
             mask = np.zeros(It.shape, dtype=np.bool8)
             mask[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper] = True
 
+            # 產生高斯分布的權重
             sigma = 0.3 * ((window_size[0] - 1) * 0.5 - 1) + 0.8
             guass_kernal = get_guassKernal(l=window_size[0], sig=sigma).flatten()
 
+            # 取得依照權重重新分配後的梯度數值
             sub_Iy = Iy[mask] * guass_kernal
             sub_Ix = Ix[mask] * guass_kernal
             sub_It = It[mask] * guass_kernal
 
+            # 計算x方向與y方向的移動量
             A = np.vstack([sub_Ix, sub_Iy]).T
             b = -sub_It
             
             v = np.linalg.pinv(A.T @ A) @ A.T @ b
 
+            # 判斷是否停止
             v_abs = np.sqrt(v[0]**2 + v[1]**2)
 
             if (v_abs > pre_v*2):                
                 break
             if (v_abs < 1):                
                 break
-
+            
+            # 更新位置
             Px, Py = (np.array([Px, Py]) + np.round(v)).astype(np.int32)
             
+            # 紀錄迭代的過程
             iter_point.append([Py, Px])
 
             if n > 70:                
@@ -84,6 +92,7 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
 ```
 
 ```python
+# 產生高斯核
 def get_guassKernal(l=5, sig=1.) -> np.ndarray:
     ax = np.linspace(-(l - 1) / 2., (l - 1) / 2., l)
     gauss = np.exp(-0.5 * np.square(ax) / np.square(sig))
@@ -91,6 +100,21 @@ def get_guassKernal(l=5, sig=1.) -> np.ndarray:
     return kernel / np.sum(kernel)
 ```
 ### 說明
+根據Lucas-Kanade Optical Flow公式計算光流以追蹤特徵點。該方法假設兩個相鄰的影格的圖像內容位移很小，且位移在目標點(P)的鄰域內為大致為常數。假設光流方程式對於以P點為中心的window內的所有像素都成立。  
+![](/img/LK說明01.jpg)  
+- `q`為像素點
+- `Ix`為對x方向的梯度
+- `Iy`為對y方向的梯度
+- `It`為對時間的梯度
+
+上述式子寫成矩陣形式即為`Av=b`
+![](/img/LK說明02.jpg)
+可推得
+![](/img/LK說明03.jpg)
+
+因所使用的梯度均為1次導數因此需透過迭代的方式來求得最佳解。
+![](/img/Optical-flow-estimation-Left-the-Lucas-Kanade-Right-the-Lucas-Kanade-aided-by.png)
+[圖片來源](https://www.researchgate.net/figure/Optical-flow-estimation-Left-the-Lucas-Kanade-Right-the-Lucas-Kanade-aided-by_fig1_280567385)
 
 # 介面操作說明
 ## Step 1：開啟程式並選擇第一張圖片
