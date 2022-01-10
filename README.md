@@ -17,7 +17,7 @@
 # 使用說明
 1. 下載專案
 2. 移至專案目錄\
-`cd /d ImageProcessing_HW2_AffineTransform`
+`cd /d ImageProcessing_HW4_LucasKanadeFlow`
 2. 安裝所需套件\
 `pipenv install`
 
