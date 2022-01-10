@@ -15,6 +15,7 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
     for (Py, Px) in trackingPoint:
         iter_point = [[Py, Px]]
         n = 0
+        pre_v = np.inf
         while True:  
             n += 1  
             crop_x_upper = int(Px + window_size[1] // 2)
@@ -35,18 +36,24 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
             A = np.vstack([sub_Ix, sub_Iy]).T
             b = -sub_It
             
-
             v = np.linalg.pinv(A.T @ A) @ A.T @ b
+
+            v_abs = np.sqrt(v[0]**2 + v[1]**2)
+
+            if (v_abs > pre_v*1.8):                
+                break
+            if (v_abs < 1):                
+                break
 
             Px, Py = (np.array([Px, Py]) + v).astype(np.int32)
             
             iter_point.append([Py, Px])
+
+            if n > 70:                
+                break
             
-            if np.sqrt(v[0]**2 + v[1]**2) < 1.5:
-                break
-            if n > 70:
-                break
-        
+            pre_v = v_abs
+
         iter_point = np.array(iter_point, dtype=np.int32)
         iter_points.append(iter_point)
     

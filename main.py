@@ -64,7 +64,7 @@ class MainWindow(QWidget):
         
         # Text
         self.label = QLabel(self)        
-        self.label.setText("Select image first")
+        self.label.setText("開啟第一張圖片")
         self.label.setGeometry(100, 150, 600, 50)
         self.label.setAlignment(Qt.AlignCenter) 
         self.label.setFont(QFont('Arial', 20)) 
@@ -81,6 +81,7 @@ class MainWindow(QWidget):
         self.btn_selectNextImage.setFont(QFont('Arial', 20)) 
         self.btn_selectNextImage.setGeometry(800, 100, 600, 50)        
         self.btn_selectNextImage.clicked.connect(self.open_next_image)
+        self.btn_selectNextImage.setEnabled(False)
 
         self.btn_startTransform = QPushButton(self)
         self.btn_startTransform.setText('start')
@@ -113,7 +114,9 @@ class MainWindow(QWidget):
 
         self.displayLabel.setImage(QPixmap(self.fileName_prev))
 
-        self.label.setText('XX')
+        self.label.setText('開啟第二張圖片')
+        self.btn_selectNextImage.setEnabled(True)
+        self.btn_selectPrevImage.setEnabled(False)
     
     def open_next_image(self):
         self.fileName_next = QFileDialog.getOpenFileName(self, \
@@ -129,6 +132,8 @@ class MainWindow(QWidget):
 
         qImg = QImage(frame, 600, 400, bytesPerLine, QImage.Format_RGB888)
         self.disployLabel_processed.setPixmap(QPixmap.fromImage(qImg))
+        self.btn_selectNextImage.setEnabled(False)
+        self.label.setText('在第一張圖片上選取要追蹤的點，再按下開始')
 
     def save_image(self):
         saveFileName = os.path.splitext(self.fileName_prev.split('/')[-1])[0]        
@@ -149,12 +154,14 @@ class MainWindow(QWidget):
 
         
         output_frame = img_next.copy()
-        for ps in iter_points:            
+        for ps in iter_points:
+            for i in range(len(ps) - 1):
+                output_frame = cv2.line(output_frame, ps[i, ::-1], ps[i+1, ::-1], (255, 0, 255), 1)         
             for s in ps[1:-1]:
-                output_frame = cv2.circle(output_frame, [s[1], s[0]], 1, (0, 0, 255), -1)
+                output_frame = cv2.circle(output_frame, [s[1], s[0]], 2, (0, 0, 255), -1)
             output_frame = cv2.circle(output_frame, [ps[0, 1], ps[0, 0]], 4, (0, 255, 0), -1)
             output_frame = cv2.circle(output_frame, [ps[-1, 1], ps[-1, 0]], 4, (255, 0, 0), -1)
-        
+
         self.processedImage = output_frame.copy()
         output_frame = cv2.cvtColor(output_frame, cv2.COLOR_BGR2RGB)
         bytesPerLine = 3 * 600
