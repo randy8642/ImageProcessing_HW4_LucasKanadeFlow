@@ -8,14 +8,14 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
 
     Iy = (img_prev_gray[2:, 1:-1] - img_prev_gray[1:-1, 1:-1]) / 2
     Ix = (img_prev_gray[1:-1, 2:] - img_prev_gray[1:-1, 1:-1]) / 2
-    It = img_next_gray[1:-1, 1:-1] - img_prev_gray[1:-1, 1:-1]
+    # It = img_next_gray[1:-1, 1:-1] - img_prev_gray[1:-1, 1:-1]
     
-
     iter_points = []
     for (Py, Px) in trackingPoint:
         iter_point = [[Py, Px]]
         n = 0
         pre_v = np.inf
+        
         while True:  
             n += 1  
             crop_x_upper = int(Px + window_size[1] // 2)
@@ -23,26 +23,31 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
             crop_y_upper = int(Py + window_size[1] // 2)
             crop_y_lower = int(Py - window_size[1] // 2 - 1)
 
-            mask = np.zeros(It.shape, dtype=np.bool8)
-            mask[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper] = True
+            if n == 1:
+                crop_prev_gray = img_prev_gray[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper]
+            crop_next_gray = img_next_gray[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper]
 
             sigma = 0.3 * ((window_size[0] - 1) * 0.5 - 1) + 0.8
-            guass_kernal = get_guassKernal(l=window_size[0], sig=sigma).flatten()
+            guass_kernal = get_guassKernal(l=window_size[0], sig=sigma)
 
-            sub_Iy = Iy[mask] * guass_kernal
-            sub_Ix = Ix[mask] * guass_kernal
-            sub_It = It[mask] * guass_kernal
+            sub_Iy = Iy[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper] * guass_kernal
+            sub_Ix = Ix[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper] * guass_kernal
+            sub_It = (crop_next_gray - crop_prev_gray) * guass_kernal
+            
+            sub_Iy = sub_Iy.flatten()
+            sub_Ix = sub_Ix.flatten()
+            sub_It = sub_It.flatten()
 
             A = np.vstack([sub_Ix, sub_Iy]).T
-            b = -sub_It
+            b = sub_It * (-1.)
             
             v = np.linalg.pinv(A.T @ A) @ A.T @ b
-
+            
             v_abs = np.sqrt(v[0]**2 + v[1]**2)
 
-            if (v_abs > pre_v*2):                
+            if (v_abs > pre_v*3):                
                 break
-            if (v_abs < 1):                
+            if (v_abs < 1.2):                
                 break
 
             Px, Py = (np.array([Px, Py]) + np.round(v)).astype(np.int32)

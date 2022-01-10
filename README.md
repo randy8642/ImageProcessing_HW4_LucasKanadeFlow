@@ -29,10 +29,9 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
     img_prev_gray = cv2.cvtColor(img_prev, cv2.COLOR_BGR2GRAY).astype(np.float32)
     img_next_gray = cv2.cvtColor(img_next, cv2.COLOR_BGR2GRAY).astype(np.float32)
 
-    # 計算x方向梯度/y方向梯度/時間變化的差異
+    # 計算x方向梯度/y方向梯度
     Iy = (img_prev_gray[2:, 1:-1] - img_prev_gray[1:-1, 1:-1]) / 2
-    Ix = (img_prev_gray[1:-1, 2:] - img_prev_gray[1:-1, 1:-1]) / 2
-    It = img_next_gray[1:-1, 1:-1] - img_prev_gray[1:-1, 1:-1]
+    Ix = (img_prev_gray[1:-1, 2:] - img_prev_gray[1:-1, 1:-1]) / 2    
     
     iter_points = []
     # 每個點分開執行追蹤
@@ -40,6 +39,7 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
         iter_point = [[Py, Px]]
         n = 0
         pre_v = np.inf
+
         while True:  
             n += 1
             # 計算要裁切的上下界
@@ -48,17 +48,23 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
             crop_y_upper = int(Py + window_size[1] // 2)
             crop_y_lower = int(Py - window_size[1] // 2 - 1)
 
-            mask = np.zeros(It.shape, dtype=np.bool8)
-            mask[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper] = True
+            # 保存起始的window
+            if n == 1:
+                crop_prev_gray = img_prev_gray[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper]
+            crop_next_gray = img_next_gray[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper]
 
-            # 產生高斯分布的權重
+            # 產生高斯核
             sigma = 0.3 * ((window_size[0] - 1) * 0.5 - 1) + 0.8
-            guass_kernal = get_guassKernal(l=window_size[0], sig=sigma).flatten()
+            guass_kernal = get_guassKernal(l=window_size[0], sig=sigma)
 
-            # 取得依照權重重新分配後的梯度數值
-            sub_Iy = Iy[mask] * guass_kernal
-            sub_Ix = Ix[mask] * guass_kernal
-            sub_It = It[mask] * guass_kernal
+            # 裁切window並將依照權重重新分配
+            sub_Iy = Iy[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper] * guass_kernal
+            sub_Ix = Ix[crop_y_lower:crop_y_upper, crop_x_lower:crop_x_upper] * guass_kernal
+            sub_It = (crop_next_gray - crop_prev_gray) * guass_kernal
+            
+            sub_Iy = sub_Iy.flatten()
+            sub_Ix = sub_Ix.flatten()
+            sub_It = sub_It.flatten()
 
             # 計算x方向與y方向的移動量
             A = np.vstack([sub_Ix, sub_Iy]).T
@@ -69,9 +75,9 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
             # 判斷是否停止
             v_abs = np.sqrt(v[0]**2 + v[1]**2)
 
-            if (v_abs > pre_v*2):                
+            if (v_abs > pre_v*3):                
                 break
-            if (v_abs < 1):                
+            if (v_abs < 1.2):                
                 break
             
             # 更新位置

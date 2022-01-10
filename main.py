@@ -145,7 +145,7 @@ class MainWindow(QWidget):
         img_next = cv2.imread(self.fileName_next)
         height, width, channel = img_next.shape
 
-        window_size = [51, 51]
+        window_size = [21, 21]
         trackingPoint = self.displayLabel.selectedPoint        
         trackingPoint = [[y / 400. * height, x / 600. * width] for x, y in trackingPoint]
 
