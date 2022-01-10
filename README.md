@@ -107,13 +107,12 @@ def get_guassKernal(l=5, sig=1.) -> np.ndarray:
 - `Iy`為對y方向的梯度
 - `It`為對時間的梯度
 
-上述式子寫成矩陣形式即為`Av=b`
-![](/img/LK說明02.jpg)
+上述式子寫成矩陣形式即為`Av=b`  
+![](/img/LK說明02.jpg)  
 可推得
-![](/img/LK說明03.jpg)
-
-因所使用的梯度均為1次導數因此需透過迭代的方式來求得最佳解。
-![](/img/Optical-flow-estimation-Left-the-Lucas-Kanade-Right-the-Lucas-Kanade-aided-by.png)
+![](/img/LK說明03.jpg)  
+因所使用的梯度均為1次導數因此需透過迭代的方式來求得最佳解。  
+![](/img/Optical-flow-estimation-Left-the-Lucas-Kanade-Right-the-Lucas-Kanade-aided-by.png)  
 [圖片來源](https://www.researchgate.net/figure/Optical-flow-estimation-Left-the-Lucas-Kanade-Right-the-Lucas-Kanade-aided-by_fig1_280567385)
 
 # 介面操作說明
