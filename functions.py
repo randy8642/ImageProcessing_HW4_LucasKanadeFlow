@@ -40,12 +40,12 @@ def LK_opticalFlow(img_prev, img_next, trackingPoint, window_size=[15, 15]):
 
             v_abs = np.sqrt(v[0]**2 + v[1]**2)
 
-            if (v_abs > pre_v*1.8):                
+            if (v_abs > pre_v*2):                
                 break
             if (v_abs < 1):                
                 break
 
-            Px, Py = (np.array([Px, Py]) + v).astype(np.int32)
+            Px, Py = (np.array([Px, Py]) + np.round(v)).astype(np.int32)
             
             iter_point.append([Py, Px])
 
